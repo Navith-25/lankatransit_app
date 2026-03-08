@@ -4,6 +4,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'register_screen.dart';
 import 'home_screen.dart';
+import 'driver_home_screen.dart';
+import 'owner_home_screen.dart';
+import 'admin_home_screen.dart';
+import 'document_upload_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,32 +42,62 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+
+        String token = responseData['token'];
+        String role = responseData['role'];
+        String userEmail = responseData['email'];
+
+        // --- ALUTHEN EKATHU KARAPU DEKA (status saha id) ---
+        String status = responseData['status'] ?? 'APPROVED';
+        int? userId = responseData['id'];
+        // ----------------------------------------------------
+
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
+        await prefs.setString('userEmail', userEmail);
+        await prefs.setString('jwt_token', token);
+        await prefs.setString('userRole', role);
 
-        await prefs.setString('userEmail', email);
+        // ID eka save karanawa documents upload karaddi pawichchi karanna
+        if (userId != null) {
+          await prefs.setInt('user_id', userId);
+        }
 
         if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+
+        // --- ALUTH REDIRECT LOGIC EKA ---
+        if (status == 'PENDING') {
+          // PENDING nam kelinma Documents upload karanna yawanawa
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DocumentUploadScreen()));
+        } else {
+          // APPROVED nam kalin wage Dashboards walata yawanawa
+          if (role == 'ADMIN') {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminHomeScreen()));
+          } else if (role == 'DRIVER') {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DriverHomeScreen()));
+          } else if (role == 'OWNER') {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const OwnerHomeScreen()));
+          } else {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+          }
+        }
+
+      } else if (response.statusCode == 403) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Your account is pending admin verification!'), backgroundColor: Colors.orange),
         );
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid Email or Password!'),
-            backgroundColor: Colors.red,
-          ),
+          const SnackBar(content: Text('Invalid Email or Password!'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Server Error. Backend eka run wenawada balanna!'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('Server Error. Backend eka run wenawada balanna!'), backgroundColor: Colors.red),
       );
     } finally {
       setState(() {
@@ -130,15 +164,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
               TextButton(
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
                 },
-                child: const Text(
-                  'Don\'t have an account? Sign Up',
-                  style: TextStyle(color: Colors.blueAccent, fontSize: 16),
-                ),
+                child: const Text('Don\'t have an account? Sign Up', style: TextStyle(color: Colors.blueAccent, fontSize: 16)),
               ),
             ],
           ),
