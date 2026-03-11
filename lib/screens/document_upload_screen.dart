@@ -19,7 +19,22 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
   File? _licensePhoto;
   bool _isLoading = false;
 
+  String _userRole = '';
+
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userRole = prefs.getString('userRole') ?? '';
+    });
+  }
 
   Future<void> _pickImage(String docType) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -54,7 +69,12 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
   Future<void> _submitDocuments() async {
     if (_profilePhoto == null || _nicFront == null || _nicBack == null) {
-      _showMessage('Please select at least Profile Photo and NIC sides!', Colors.red);
+      _showMessage('Profile Photo and NIC (Front & Back) are compulsory!', Colors.red);
+      return;
+    }
+
+    if (_userRole == 'DRIVER' && _licensePhoto == null) {
+      _showMessage('Driving License is COMPULSORY for Drivers!', Colors.red);
       return;
     }
 
@@ -117,9 +137,9 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Your account is PENDING. Please upload below documents for Admin Verification.',
-              style: TextStyle(fontSize: 16, color: Colors.redAccent, fontWeight: FontWeight.bold),
+            Text(
+              'Your account role is $_userRole. Please upload the required documents.',
+              style: const TextStyle(fontSize: 16, color: Colors.redAccent, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -130,7 +150,9 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                   _buildUploadButton('Profile Photo', 'profile', _profilePhoto),
                   _buildUploadButton('NIC Front', 'nic_front', _nicFront),
                   _buildUploadButton('NIC Back', 'nic_back', _nicBack),
-                  _buildUploadButton('Driving License (Optional for Owners)', 'license', _licensePhoto),
+
+                  if (_userRole == 'DRIVER')
+                    _buildUploadButton('Driving License (Compulsory)', 'license', _licensePhoto),
                 ],
               ),
             ),

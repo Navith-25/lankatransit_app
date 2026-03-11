@@ -3,13 +3,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
-// main function eka dan async wenawa memory eka read karanna oni nisa
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Flutter ready da kiyala make sure karanawa
 
-  // Phone eke memory eka check karanawa
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false; // Mukuth nathnam false kiyala gannawa
+  bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
   runApp(LankaTransitApp(isLoggedIn: isLoggedIn));
 }
@@ -27,7 +26,7 @@ class LankaTransitApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         useMaterial3: true,
       ),
-      // isLoggedIn true nam HomeScreen ekata, natham LoginScreen ekata yanawa
+
       home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
       debugShowCheckedModeBanner: false,
     );
