@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
+import 'profile_screen.dart';
+import 'route_management_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -148,6 +150,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                 ),
                 _buildDocImage('Insurance Card', bus['insuranceCardUrl']),
                 _buildDocImage('Revenue License', bus['revenueLicenseUrl']),
+                _buildDocImage('Route Permit', bus['routePermitUrl']),
               ],
             ),
           ),
@@ -312,6 +315,27 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.map),
+            tooltip: 'Manage Routes',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RouteManagementScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
               SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -356,7 +380,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                           );
                         },
                       ),
-
                 _pendingBuses.isEmpty
                     ? const Center(child: Text('No pending buses! 🎉'))
                     : ListView.builder(
@@ -372,7 +395,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              subtitle: Text('Capacity: ${bus['capacity']}'),
+                              subtitle: Text(
+                                'Capacity: ${bus['capacity']} | Route ID: ${bus['routeId']}',
+                              ), // ALUTH: Pennanawa
                               trailing: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blueAccent,
