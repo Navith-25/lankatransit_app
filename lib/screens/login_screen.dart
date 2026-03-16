@@ -35,10 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       if (response.statusCode == 200) {
@@ -47,62 +44,85 @@ class _LoginScreenState extends State<LoginScreen> {
         String token = responseData['token'];
         String role = responseData['role'];
         String userEmail = responseData['email'];
-
-        // --- ALUTHEN EKATHU KARAPU DEKA (status saha id) ---
+        String userName = responseData['name'] ?? "User";
         String status = responseData['status'] ?? 'APPROVED';
         int? userId = responseData['id'];
-        // ----------------------------------------------------
 
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('userEmail', userEmail);
+        await prefs.setString('user_name', userName);
         await prefs.setString('jwt_token', token);
-        await prefs.setString('userRole', role);
+        await prefs.setString('user_role', role);
+        await prefs.setString('user_status', status);
 
-        // ID eka save karanawa documents upload karaddi pawichchi karanna
         if (userId != null) {
           await prefs.setInt('user_id', userId);
         }
 
         if (!mounted) return;
 
-        // --- ALUTH REDIRECT LOGIC EKA ---
-        if (status == 'PENDING') {
-          // PENDING nam kelinma Documents upload karanna yawanawa
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DocumentUploadScreen()));
+        if (status == 'PENDING' && role == 'OWNER') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const DocumentUploadScreen(),
+            ),
+          );
         } else {
-          // APPROVED nam kalin wage Dashboards walata yawanawa
           if (role == 'ADMIN') {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminHomeScreen()));
-          } else if (role == 'DRIVER') {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DriverHomeScreen()));
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminHomeScreen()),
+            );
+          } else if (role == 'DRIVER' || role == 'CONDUCTOR') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const DriverHomeScreen()),
+            );
           } else if (role == 'OWNER') {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const OwnerHomeScreen()));
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const OwnerHomeScreen()),
+            );
           } else {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
           }
         }
-
       } else if (response.statusCode == 403) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Your account is pending admin verification!'), backgroundColor: Colors.orange),
+          const SnackBar(
+            content: Text('Your account is pending admin verification!'),
+            backgroundColor: Colors.orange,
+          ),
         );
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid Email or Password!'), backgroundColor: Colors.red),
+          const SnackBar(
+            content: Text('Invalid Email or Password!'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Server Error. Backend eka run wenawada balanna!'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Server Error.'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -117,9 +137,20 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
-              const Icon(Icons.directions_bus_filled, size: 100, color: Colors.blueAccent),
+              const Icon(
+                Icons.directions_bus_filled,
+                size: 100,
+                color: Colors.blueAccent,
+              ),
               const SizedBox(height: 20),
-              const Text('LankaTransit', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+              const Text(
+                'LankaTransit',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueAccent,
+                ),
+              ),
               const SizedBox(height: 40),
 
               TextField(
@@ -128,7 +159,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: InputDecoration(
                   labelText: 'Email',
                   prefixIcon: const Icon(Icons.email),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -139,7 +172,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: InputDecoration(
                   labelText: 'Password',
                   prefixIcon: const Icon(Icons.lock),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               const SizedBox(height: 30),
@@ -151,12 +186,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: _isLoading ? null : loginUser,
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Login', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      : const Text(
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
 
@@ -164,9 +207,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
               TextButton(
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RegisterScreen(),
+                    ),
+                  );
                 },
-                child: const Text('Don\'t have an account? Sign Up', style: TextStyle(color: Colors.blueAccent, fontSize: 16)),
+                child: const Text(
+                  'Don\'t have an account? Sign Up',
+                  style: TextStyle(color: Colors.blueAccent, fontSize: 16),
+                ),
               ),
             ],
           ),

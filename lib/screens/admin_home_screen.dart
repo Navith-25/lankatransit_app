@@ -11,7 +11,8 @@ class AdminHomeScreen extends StatefulWidget {
   State<AdminHomeScreen> createState() => _AdminHomeScreenState();
 }
 
-class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProviderStateMixin {
+class _AdminHomeScreenState extends State<AdminHomeScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<dynamic> _pendingUsers = [];
   List<dynamic> _pendingBuses = [];
@@ -32,22 +33,15 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('jwt_token');
 
-      print("--- FETCHING PENDING DATA START ---");
-
       final userResponse = await http.get(
         Uri.parse('$baseUrl/api/users/pending'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
-      print("User API Status Code: ${userResponse.statusCode}");
-      print("User API Response Body: ${userResponse.body}");
-
       if (userResponse.statusCode == 200) {
         setState(() {
           _pendingUsers = jsonDecode(userResponse.body);
         });
-      } else {
-        _showMessage('Failed to load Users (Code: ${userResponse.statusCode})', Colors.orange);
       }
 
       final busResponse = await http.get(
@@ -55,26 +49,19 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         headers: {'Authorization': 'Bearer $token'},
       );
 
-      print("Bus API Status Code: ${busResponse.statusCode}");
-      print("Bus API Response Body: ${busResponse.body}");
-
       if (busResponse.statusCode == 200) {
         setState(() {
           _pendingBuses = jsonDecode(busResponse.body);
         });
-      } else {
-        print("Failed to load Buses (Code: ${busResponse.statusCode})");
       }
-
     } catch (e) {
-      print("--- ERROR CAUGHT --- : $e");
-      _showMessage('Error fetching data! Is backend running?', Colors.red);
+      _showMessage('Error fetching data!', Colors.red);
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  void _showDocumentDialog(Map<String, dynamic> user) {
+  void _showUserDocumentDialog(Map<String, dynamic> user) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -94,14 +81,122 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-            onPressed: () {
-              Navigator.pop(context);
-              _approveUser(user['id']);
-            },
-            child: const Text('Approve Now'),
+          SizedBox(
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _approveUser(user['id']);
+                  },
+                  child: const Text('Approve'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _resubmitUser(user['id']);
+                  },
+                  child: const Text('Resubmit Docs'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _rejectUser(user['id']);
+                  },
+                  child: const Text('Reject'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBusDocumentDialog(Map<String, dynamic> bus) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Bus Docs: ${bus['busNumber']}'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildDocImage(
+                  'Registration Potha (CR)',
+                  bus['registrationPothaUrl'],
+                ),
+                _buildDocImage('Insurance Card', bus['insuranceCardUrl']),
+                _buildDocImage('Revenue License', bus['revenueLicenseUrl']),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _approveBus(bus['id']);
+                  },
+                  child: const Text('Approve Bus'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _resubmitBus(bus['id']);
+                  },
+                  child: const Text('Resubmit Docs'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _rejectBus(bus['id']);
+                  },
+                  child: const Text('Reject Bus'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -109,101 +204,103 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   }
 
   Widget _buildDocImage(String title, String? url) {
-    if (url != null && url.isNotEmpty) {
-      print("Trying to load image for $title: $baseUrl$url");
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          child: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
         url != null && url.isNotEmpty
             ? Image.network(
-          '$baseUrl$url',
-          height: 200,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-            if (loadingProgress == null) return child;
-            return SizedBox(
-              height: 200,
-              child: Center(
-                child: CircularProgressIndicator(
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
-                      : null,
+                '$baseUrl$url',
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 200,
+                  color: Colors.grey[200],
+                  child: const Center(
+                    child: Text(
+                      'Image not found',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
                 ),
+              )
+            : const Text(
+                'No document uploaded',
+                style: TextStyle(color: Colors.grey),
               ),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) {
-            print("IMAGE ERROR FOR $title: $error");
-            return Container(
-              height: 200,
-              color: Colors.grey[200],
-              child: const Center(
-                child: Text('Failed to load image from server', style: TextStyle(color: Colors.red)),
-              ),
-            );
-          },
-        )
-            : const Text('No document uploaded', style: TextStyle(color: Colors.grey)),
         const Divider(),
       ],
     );
   }
 
-  Future<void> _approveUser(int id) async {
+  Future<void> _approveUser(int id) async =>
+      _updateStatus('users/approve', id, 'User Approved! ✅', Colors.green);
+  Future<void> _rejectUser(int id) async =>
+      _updateStatus('users/reject', id, 'User Rejected! ❌', Colors.red);
+  Future<void> _resubmitUser(int id) async => _updateStatus(
+    'users/resubmit',
+    id,
+    'Requested to Resubmit Docs! 🔄',
+    Colors.orange,
+  );
+
+  Future<void> _approveBus(int id) async =>
+      _updateStatus('buses/approve', id, 'Bus Approved! 🚌✅', Colors.green);
+  Future<void> _rejectBus(int id) async =>
+      _updateStatus('buses/reject', id, 'Bus Rejected! 🚌❌', Colors.red);
+  Future<void> _resubmitBus(int id) async => _updateStatus(
+    'buses/resubmit',
+    id,
+    'Requested to Resubmit Bus Docs! 🔄',
+    Colors.orange,
+  );
+
+  Future<void> _updateStatus(
+    String endpoint,
+    int id,
+    String successMsg,
+    Color color,
+  ) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('jwt_token');
 
       final response = await http.put(
-        Uri.parse('$baseUrl/api/users/approve/$id'),
+        Uri.parse('$baseUrl/api/$endpoint/$id'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
-        _showMessage('User Approved Successfully! ✅', Colors.green);
+        _showMessage(successMsg, color);
         _fetchPendingData();
       }
     } catch (e) {
-      _showMessage('Approval Failed!', Colors.red);
-    }
-  }
-
-  Future<void> _approveBus(int id) async {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('jwt_token');
-
-      final response = await http.put(
-        Uri.parse('$baseUrl/api/buses/approve/$id'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (response.statusCode == 200) {
-        _showMessage('Bus Approved Successfully! 🚌✅', Colors.green);
-        _fetchPendingData();
-      }
-    } catch (e) {
-      _showMessage('Approval Failed!', Colors.red);
+      _showMessage('Action Failed!', Colors.red);
     }
   }
 
   void _showMessage(String msg, Color color) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Admin Dashboard',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.redAccent,
         foregroundColor: Colors.white,
         bottom: TabBar(
@@ -220,57 +317,76 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
               SharedPreferences prefs = await SharedPreferences.getInstance();
               await prefs.clear();
               if (!context.mounted) return;
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
             },
-          )
+          ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : TabBarView(
-        controller: _tabController,
-        children: [
-          _pendingUsers.isEmpty
-              ? const Center(child: Text('No pending users! 🎉'))
-              : ListView.builder(
-            itemCount: _pendingUsers.length,
-            itemBuilder: (context, index) {
-              var user = _pendingUsers[index];
-              return Card(
-                margin: const EdgeInsets.all(8),
-                child: ListTile(
-                  title: Text(user['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${user['role']} | ${user['email']}'),
-                  trailing: ElevatedButton(
-                    onPressed: () => _showDocumentDialog(user),
-                    child: const Text('View Docs'),
-                  ),
-                ),
-              );
-            },
-          ),
-          _pendingBuses.isEmpty
-              ? const Center(child: Text('No pending buses! 🎉'))
-              : ListView.builder(
-            itemCount: _pendingBuses.length,
-            itemBuilder: (context, index) {
-              var bus = _pendingBuses[index];
-              return Card(
-                margin: const EdgeInsets.all(8),
-                child: ListTile(
-                  title: Text(bus['busNumber'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Capacity: ${bus['capacity']}'),
-                  trailing: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                    onPressed: () => _approveBus(bus['id']),
-                    child: const Text('Approve'),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+              controller: _tabController,
+              children: [
+                _pendingUsers.isEmpty
+                    ? const Center(child: Text('No pending users! 🎉'))
+                    : ListView.builder(
+                        itemCount: _pendingUsers.length,
+                        itemBuilder: (context, index) {
+                          var user = _pendingUsers[index];
+                          return Card(
+                            margin: const EdgeInsets.all(8),
+                            child: ListTile(
+                              title: Text(
+                                user['name'],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${user['role']} | ${user['email']}',
+                              ),
+                              trailing: ElevatedButton(
+                                onPressed: () => _showUserDocumentDialog(user),
+                                child: const Text('View Docs'),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+
+                _pendingBuses.isEmpty
+                    ? const Center(child: Text('No pending buses! 🎉'))
+                    : ListView.builder(
+                        itemCount: _pendingBuses.length,
+                        itemBuilder: (context, index) {
+                          var bus = _pendingBuses[index];
+                          return Card(
+                            margin: const EdgeInsets.all(8),
+                            child: ListTile(
+                              title: Text(
+                                bus['busNumber'],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text('Capacity: ${bus['capacity']}'),
+                              trailing: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blueAccent,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () => _showBusDocumentDialog(bus),
+                                child: const Text('View Docs'),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ],
+            ),
     );
   }
 }

@@ -52,7 +52,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _showError('Registration Failed! Email might already exist.');
       }
     } catch (e) {
-      _showError('Server Error. Backend eka run wenawada balanna!');
+      _showError('Server Error.');
     } finally {
       setState(() => _isLoading = false);
     }

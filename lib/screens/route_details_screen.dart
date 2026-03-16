@@ -44,7 +44,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
         showError('Failed to load halts');
       }
     } catch (e) {
-      showError('Server error. Backend eka run wenawada balanna!');
+      showError('Server error.');
     }
   }
 
@@ -243,7 +243,6 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        // Mila 0 ta wada wadi nam saha load wenne natham wada karanawa
                         onPressed: (_ticketPrice > 0 && !_isBooking) ? _bookTicket : null,
                         child: _isBooking
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))

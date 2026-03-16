@@ -38,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
         showError('Failed to load routes');
       }
     } catch (e) {
-      showError('Server error. Backend eka run wenawada balanna!');
+      showError('Server error.');
     }
   }
 

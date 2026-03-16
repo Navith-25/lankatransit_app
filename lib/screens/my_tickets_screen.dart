@@ -22,7 +22,6 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
   }
 
   Future<void> _fetchMyTickets() async {
-    // Memory eken email eka gannawa
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String email = prefs.getString('userEmail') ?? '';
 
@@ -35,7 +34,6 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
       return;
     }
 
-    // Backend eken tickets gannawa
     final url = Uri.parse('http://10.0.2.2:8081/api/routes/bookings/$email');
 
     try {
@@ -50,7 +48,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
         _showError('Failed to load tickets');
       }
     } catch (e) {
-      _showError('Server error. Backend eka run wenawada balanna!');
+      _showError('Server error.');
     }
   }
 
@@ -62,9 +60,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
     );
   }
 
-  // Welawa lassanata pennanna podi function ekak
   String _formatDate(String dateTimeStr) {
-    // "2026-02-28T13:20:02" wage ena eka "2026-02-28 | 13:20" widihata hadanawa
     try {
       final parts = dateTimeStr.split('T');
       final date = parts[0];
