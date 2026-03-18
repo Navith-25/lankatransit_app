@@ -132,6 +132,34 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
     }
   }
 
+  Future<bool> _assignCrew(int busId, int? driverId, int? conductorId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('jwt_token');
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/api/buses/$busId/assign-crew'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'driverId': driverId, 'conductorId': conductorId}),
+      );
+
+      if (response.statusCode == 200) {
+        _showMessage('Crew Assigned Successfully!', Colors.green);
+        _fetchMyBuses();
+        return true;
+      } else {
+        _showMessage('Failed to assign crew.', Colors.red);
+        return false;
+      }
+    } catch (e) {
+      _showMessage('Error assigning crew.', Colors.red);
+      return false;
+    }
+  }
+
   Future<void> _deleteStaff(int id) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -199,7 +227,7 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
         if (docType == 'registration') _registrationPotha = File(image.path);
         if (docType == 'insurance') _insuranceCard = File(image.path);
         if (docType == 'revenue') _revenueLicense = File(image.path);
-        if (docType == 'permit') _routePermit = File(image.path); // ALUTH
+        if (docType == 'permit') _routePermit = File(image.path);
       });
     }
   }
@@ -282,7 +310,7 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
           _routePermit!,
           newBusId,
           'upload-route-permit',
-        ); // ALUTH UPLOAD EKA
+        );
 
         _showMessage('Bus & Documents Added Successfully!', Colors.green);
 
@@ -334,11 +362,7 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
           'upload-revenue-license',
         );
       if (_routePermit != null)
-        await _uploadBusDocument(
-          _routePermit!,
-          busId,
-          'upload-route-permit',
-        ); // ALUTH
+        await _uploadBusDocument(_routePermit!, busId, 'upload-route-permit');
 
       _showMessage('Documents Resubmitted Successfully!', Colors.green);
 
@@ -619,7 +643,7 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
                 'permit',
                 _routePermit,
                 setSheetState,
-              ), // ALUTH
+              ),
 
               const SizedBox(height: 20),
               ElevatedButton(
@@ -641,6 +665,131 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                         'Resubmit Documents',
+                        style: TextStyle(fontSize: 16),
+                      ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAssignCrewSheet(Map<String, dynamic> bus) {
+    List<dynamic> drivers = _myStaff
+        .where((s) => s['role'] == 'DRIVER' && s['status'] == 'APPROVED')
+        .toList();
+    List<dynamic> conductors = _myStaff
+        .where((s) => s['role'] == 'CONDUCTOR' && s['status'] == 'APPROVED')
+        .toList();
+
+    String? selectedDriverId = bus['driverId']?.toString();
+    String? selectedConductorId = bus['conductorId']?.toString();
+
+    if (selectedDriverId != null &&
+        !drivers.any((d) => d['id'].toString() == selectedDriverId)) {
+      selectedDriverId = null;
+    }
+    if (selectedConductorId != null &&
+        !conductors.any((c) => c['id'].toString() == selectedConductorId)) {
+      selectedConductorId = null;
+    }
+
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Assign Crew for ${bus['busNumber']}',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              DropdownButtonFormField<String>(
+                value: selectedDriverId,
+                decoration: const InputDecoration(
+                  labelText: 'Select Driver (Approved Only)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.sports_motorsports),
+                ),
+                items: drivers.map((driver) {
+                  return DropdownMenuItem<String>(
+                    value: driver['id'].toString(),
+                    child: Text(
+                      '${driver['name']} (${driver['phone'] ?? 'No phone'})',
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) => setSheetState(() => selectedDriverId = val),
+              ),
+              const SizedBox(height: 15),
+
+              DropdownButtonFormField<String>(
+                value: selectedConductorId,
+                decoration: const InputDecoration(
+                  labelText: 'Select Conductor (Approved Only)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.confirmation_number),
+                ),
+                items: conductors.map((cond) {
+                  return DropdownMenuItem<String>(
+                    value: cond['id'].toString(),
+                    child: Text(
+                      '${cond['name']} (${cond['phone'] ?? 'No phone'})',
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) =>
+                    setSheetState(() => selectedConductorId = val),
+              ),
+
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        setSheetState(() => isSubmitting = true);
+                        int? dId = selectedDriverId != null
+                            ? int.parse(selectedDriverId!)
+                            : null;
+                        int? cId = selectedConductorId != null
+                            ? int.parse(selectedConductorId!)
+                            : null;
+
+                        bool success = await _assignCrew(bus['id'], dId, cId);
+                        if (success && sheetContext.mounted)
+                          Navigator.pop(sheetContext);
+                        setSheetState(() => isSubmitting = false);
+                      },
+                child: isSubmitting
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'Save Assignments',
                         style: TextStyle(fontSize: 16),
                       ),
               ),
@@ -987,6 +1136,28 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
             statusIcon = Icons.upload_file;
           }
 
+          Widget? trailingWidget;
+          if (status == 'RESUBMIT' || status == 'REJECTED') {
+            trailingWidget = ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: statusColor,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => _showResubmitBusSheet(bus),
+              child: const Text('Edit'),
+            );
+          } else if (status == 'APPROVED') {
+            trailingWidget = ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => _showAssignCrewSheet(bus),
+              icon: const Icon(Icons.people, size: 18),
+              label: const Text('Assign Crew'),
+            );
+          }
+
           return Card(
             elevation: 3,
             margin: const EdgeInsets.only(bottom: 15),
@@ -1010,23 +1181,12 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Text(
-                  'Route ID: ${bus['routeId'] ?? 'N/A'}\nCapacity: ${bus['capacity']}\nStatus: $status',
+                  'Route ID: ${bus['routeId'] ?? 'N/A'}\nDriver ID: ${bus['driverId'] ?? 'Unassigned'} | Cond: ${bus['conductorId'] ?? 'Unassigned'}\nStatus: $status',
                   style: TextStyle(color: Colors.grey[700], height: 1.4),
                 ),
               ),
               isThreeLine: true,
-              trailing: (status == 'RESUBMIT' || status == 'REJECTED')
-                  ? ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: statusColor,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        _showResubmitBusSheet(bus);
-                      },
-                      child: const Text('Edit'),
-                    )
-                  : null,
+              trailing: trailingWidget,
             ),
           );
         },
