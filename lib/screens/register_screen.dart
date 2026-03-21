@@ -22,7 +22,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> registerUser() async {
     setState(() => _isLoading = true);
 
-    final url = Uri.parse('https://navith-25-lankatransit-backend.hf.space');
+    final url = Uri.parse(
+      'https://navith-25-lankatransit-backend.hf.space/api/users/register',
+    );
 
     try {
       final response = await http.post(
