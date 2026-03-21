@@ -55,7 +55,9 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse('http://10.0.2.2:8081/api/users/$userId/$endpoint'),
+      Uri.parse(
+        'https://navith-25-lankatransit-backend.hf.space/api/users/$userId/$endpoint',
+      ),
     );
 
     request.headers['Authorization'] = 'Bearer $token';
@@ -69,7 +71,10 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
   Future<void> _submitDocuments() async {
     if (_profilePhoto == null || _nicFront == null || _nicBack == null) {
-      _showMessage('Profile Photo and NIC (Front & Back) are compulsory!', Colors.red);
+      _showMessage(
+        'Profile Photo and NIC (Front & Back) are compulsory!',
+        Colors.red,
+      );
       return;
     }
 
@@ -89,13 +94,18 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
         await _uploadSingleFile(_licensePhoto!, 'upload-license');
       }
 
-      _showMessage('Documents Uploaded Successfully! Wait for Admin Approval.', Colors.green);
+      _showMessage(
+        'Documents Uploaded Successfully! Wait for Admin Approval.',
+        Colors.green,
+      );
 
       if (!mounted) return;
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
-
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
     } catch (e) {
       _showMessage('Upload Failed. Please try again.', Colors.red);
     } finally {
@@ -105,15 +115,19 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
   void _showMessage(String msg, Color color) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
   Widget _buildUploadButton(String title, String docType, File? file) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
-        leading: Icon(file == null ? Icons.upload_file : Icons.check_circle,
-            color: file == null ? Colors.blue : Colors.green),
+        leading: Icon(
+          file == null ? Icons.upload_file : Icons.check_circle,
+          color: file == null ? Colors.blue : Colors.green,
+        ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(file == null ? 'Not selected' : 'Image ready to upload'),
         trailing: ElevatedButton(
@@ -139,7 +153,11 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
           children: [
             Text(
               'Your account role is $_userRole. Please upload the required documents.',
-              style: const TextStyle(fontSize: 16, color: Colors.redAccent, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -152,7 +170,11 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                   _buildUploadButton('NIC Back', 'nic_back', _nicBack),
 
                   if (_userRole == 'DRIVER')
-                    _buildUploadButton('Driving License (Compulsory)', 'license', _licensePhoto),
+                    _buildUploadButton(
+                      'Driving License (Compulsory)',
+                      'license',
+                      _licensePhoto,
+                    ),
                 ],
               ),
             ),
@@ -160,14 +182,17 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-              ),
-              onPressed: _submitDocuments,
-              child: const Text('Submit All Documents', style: TextStyle(fontSize: 18)),
-            ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                    onPressed: _submitDocuments,
+                    child: const Text(
+                      'Submit All Documents',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                  ),
           ],
         ),
       ),

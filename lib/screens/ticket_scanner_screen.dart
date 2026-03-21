@@ -5,14 +5,15 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TicketScannerScreen extends StatefulWidget {
-  const TicketScannerScreen({super.key});
+  final int busId;
+  const TicketScannerScreen({super.key, required this.busId});
 
   @override
   State<TicketScannerScreen> createState() => _TicketScannerScreenState();
 }
 
 class _TicketScannerScreenState extends State<TicketScannerScreen> {
-  final String baseUrl = "http://10.0.2.2:8081";
+  final String baseUrl = "https://navith-25-lankatransit-backend.hf.space";
   bool isScanning = true;
 
   Future<void> _verifyTicket(String qrHash) async {
@@ -28,7 +29,10 @@ class _TicketScannerScreenState extends State<TicketScannerScreen> {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({'qrCodeHash': qrHash}),
+        body: jsonEncode({
+          'qrCodeHash': qrHash,
+          'busId': widget.busId.toString(),
+        }),
       );
 
       final result = jsonDecode(response.body);
@@ -95,6 +99,7 @@ class _TicketScannerScreenState extends State<TicketScannerScreen> {
       appBar: AppBar(
         title: const Text("Scan Passenger Ticket"),
         backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
       ),
       body: Stack(
         children: [
@@ -111,7 +116,6 @@ class _TicketScannerScreenState extends State<TicketScannerScreen> {
               }
             },
           ),
-
           Center(
             child: Container(
               width: 250,

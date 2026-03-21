@@ -16,7 +16,7 @@ class OwnerHomeScreen extends StatefulWidget {
 
 class _OwnerHomeScreenState extends State<OwnerHomeScreen>
     with SingleTickerProviderStateMixin {
-  final String baseUrl = "http://10.0.2.2:8081";
+  final String baseUrl = "https://navith-25-lankatransit-backend.hf.space";
 
   late TabController _tabController;
 
@@ -28,6 +28,10 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
 
   List<dynamic> _availableRoutes = [];
   String? _selectedRouteId;
+
+  double _totalRevenue = 0.0;
+  int _totalTickets = 0;
+  int _totalBuses = 0;
 
   final TextEditingController _busNumberController = TextEditingController();
   final TextEditingController _capacityController = TextEditingController();
@@ -55,9 +59,35 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
   }
 
   Future<void> _fetchAllData() async {
+    _fetchRevenue();
     _fetchMyBuses();
     _fetchMyStaff();
     _fetchAvailableRoutes();
+  }
+
+  Future<void> _fetchRevenue() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('jwt_token');
+      int? ownerId = prefs.getInt('user_id');
+      if (ownerId == null) return;
+
+      final revRes = await http.get(
+        Uri.parse('$baseUrl/api/tickets/revenue/owner/$ownerId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (revRes.statusCode == 200) {
+        final revData = jsonDecode(revRes.body);
+        setState(() {
+          _totalRevenue = (revData['totalRevenue'] ?? 0.0).toDouble();
+          _totalTickets = revData['totalTickets'] ?? 0;
+          _totalBuses = revData['totalBuses'] ?? 0;
+        });
+      }
+    } catch (e) {
+      print("Error fetching revenue: $e");
+    }
   }
 
   Future<void> _fetchAvailableRoutes() async {
@@ -688,13 +718,11 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
     String? selectedConductorId = bus['conductorId']?.toString();
 
     if (selectedDriverId != null &&
-        !drivers.any((d) => d['id'].toString() == selectedDriverId)) {
+        !drivers.any((d) => d['id'].toString() == selectedDriverId))
       selectedDriverId = null;
-    }
     if (selectedConductorId != null &&
-        !conductors.any((c) => c['id'].toString() == selectedConductorId)) {
+        !conductors.any((c) => c['id'].toString() == selectedConductorId))
       selectedConductorId = null;
-    }
 
     bool isSubmitting = false;
 
@@ -1024,6 +1052,35 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
     );
   }
 
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 5),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 30),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDashboardTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
@@ -1040,7 +1097,66 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 20),
+
+          // --- REVENUE CARD ---
+          Container(
+            padding: const EdgeInsets.all(25),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Colors.deepPurple, Colors.purpleAccent],
+              ),
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.purple.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'Total Revenue',
+                  style: TextStyle(color: Colors.white70, fontSize: 18),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Rs. ${_totalRevenue.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Tickets',
+                  _totalTickets.toString(),
+                  Icons.confirmation_number,
+                  Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildStatCard(
+                  'Buses',
+                  _totalBuses.toString(),
+                  Icons.directions_bus,
+                  Colors.green,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 30),
 
           Card(
             elevation: 4,
@@ -1121,7 +1237,6 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen>
         itemBuilder: (context, index) {
           var bus = _myBuses[index];
           String status = bus['status'] ?? 'PENDING';
-
           Color statusColor = Colors.orange;
           IconData statusIcon = Icons.pending;
 

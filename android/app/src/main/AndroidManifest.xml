@@ -6,6 +6,8 @@
         android:label="lankatransit_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyCpLBpnNYInfufg7GC_dFxqLHjKYxzKX_s"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

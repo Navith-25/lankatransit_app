@@ -11,7 +11,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final String baseUrl = "http://10.0.2.2:8081";
+  final String baseUrl = "https://navith-25-lankatransit-backend.hf.space";
 
   Map<String, dynamic>? _userData;
   bool _isLoading = true;

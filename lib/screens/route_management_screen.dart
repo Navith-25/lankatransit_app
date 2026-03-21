@@ -10,7 +10,7 @@ class RouteManagementScreen extends StatefulWidget {
 }
 
 class _RouteManagementScreenState extends State<RouteManagementScreen> {
-  final String baseUrl = "http://10.0.2.2:8081";
+  final String baseUrl = "https://navith-25-lankatransit-backend.hf.space";
 
   List<dynamic> _routes = [];
   bool _isLoading = false;

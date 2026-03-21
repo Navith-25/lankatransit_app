@@ -20,7 +20,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
   List<dynamic> _pendingBuses = [];
   bool _isLoading = true;
 
-  final String baseUrl = "http://10.0.2.2:8081";
+  final String baseUrl = "https://navith-25-lankatransit-backend.hf.space";
 
   @override
   void initState() {

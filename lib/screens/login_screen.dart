@@ -29,7 +29,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final String email = _emailController.text;
     final String password = _passwordController.text;
 
-    final url = Uri.parse('http://10.0.2.2:8081/api/users/login');
+    final url = Uri.parse(
+      'https://navith-25-lankatransit-backend.hf.space/api/users/login',
+    );
 
     try {
       final response = await http.post(

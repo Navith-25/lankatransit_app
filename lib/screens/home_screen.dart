@@ -6,6 +6,7 @@ import 'login_screen.dart';
 import 'route_details_screen.dart';
 import 'my_tickets_screen.dart';
 import 'profile_screen.dart';
+import 'live_map_screen.dart'; // ALUTH: Live Map screen eka import kala
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,7 +29,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> fetchRoutes() async {
-    final url = Uri.parse('http://10.0.2.2:8081/api/routes');
+    final url = Uri.parse(
+      'https://navith-25-lankatransit-backend.hf.space/api/routes',
+    );
 
     try {
       final response = await http.get(url);
@@ -232,6 +235,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
+
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const LiveMapScreen()),
+          );
+        },
+        icon: const Icon(Icons.map, size: 28),
+        label: const Text(
+          'Live Radar',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
+        elevation: 4,
+      ),
     );
   }
 }

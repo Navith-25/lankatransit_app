@@ -34,7 +34,9 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
       return;
     }
 
-    final url = Uri.parse('http://10.0.2.2:8081/api/routes/bookings/$email');
+    final url = Uri.parse(
+      'https://navith-25-lankatransit-backend.hf.space/api/routes/bookings/$email',
+    );
 
     try {
       final response = await http.get(url);
@@ -86,85 +88,130 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
           ? const Center(child: Text('User email not found. Please relogin.'))
           : _tickets.isEmpty
           ? const Center(
-        child: Text(
-          'You haven\'t booked any tickets yet. 🎟️',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
-        ),
-      )
-          : ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _tickets.length,
-        itemBuilder: (context, index) {
-          final ticket = _tickets[index];
-          return Card(
-            elevation: 3,
-            margin: const EdgeInsets.only(bottom: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'Route ID: ${ticket['routeId']}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent),
-                        ),
-                      ),
-                      Text(
-                        'Rs. ${ticket['fare']}',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 25, thickness: 1),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('From', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                          Text(ticket['startHalt'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        ],
-                      ),
-                      const Icon(Icons.arrow_forward, color: Colors.blueAccent, size: 20),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text('To', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                          Text(ticket['endHalt'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  Row(
-                    children: [
-                      const Icon(Icons.access_time, size: 16, color: Colors.grey),
-                      const SizedBox(width: 5),
-                      Text(
-                        _formatDate(ticket['bookingTime']),
-                        style: const TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                    ],
-                  )
-                ],
+              child: Text(
+                'You haven\'t booked any tickets yet. 🎟️',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _tickets.length,
+              itemBuilder: (context, index) {
+                final ticket = _tickets[index];
+                return Card(
+                  elevation: 3,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Route ID: ${ticket['routeId']}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueAccent,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              'Rs. ${ticket['fare']}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 25, thickness: 1),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'From',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  ticket['startHalt'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Icon(
+                              Icons.arrow_forward,
+                              color: Colors.blueAccent,
+                              size: 20,
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                const Text(
+                                  'To',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  ticket['endHalt'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 15),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.access_time,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              _formatDate(ticket['bookingTime']),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 }
