@@ -191,6 +191,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     if (_locationTimer != null && _locationTimer!.isActive) return;
 
     print("Started Live GPS Tracking...");
+
+    _sendLocationToBackend();
+
     _locationTimer = Timer.periodic(
       const Duration(seconds: 10),
       (Timer t) => _sendLocationToBackend(),

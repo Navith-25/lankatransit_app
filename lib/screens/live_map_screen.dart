@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/services.dart';
 
 class LiveMapScreen extends StatefulWidget {
   const LiveMapScreen({super.key});
@@ -20,6 +22,8 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
   Timer? _timer;
   bool _hasLocationPermission = false;
 
+  BitmapDescriptor? _customBusIcon;
+
   static const CameraPosition _initialPosition = CameraPosition(
     target: LatLng(6.7115, 79.9074),
     zoom: 12.0,
@@ -29,6 +33,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
   void initState() {
     super.initState();
     _checkPermission();
+    _loadCustomMarker();
     _fetchLiveBuses();
 
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
@@ -40,6 +45,35 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<Uint8List> getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(),
+      targetWidth: width,
+    );
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(
+      format: ui.ImageByteFormat.png,
+    ))!.buffer.asUint8List();
+  }
+
+  Future<void> _loadCustomMarker() async {
+    try {
+      final Uint8List markerIcon = await getBytesFromAsset(
+        'assets/bus_icon.png',
+        100,
+      );
+
+      if (mounted) {
+        setState(() {
+          _customBusIcon = BitmapDescriptor.fromBytes(markerIcon);
+        });
+      }
+    } catch (e) {
+      print("Error loading custom marker: $e");
+    }
   }
 
   Future<void> _checkPermission() async {
@@ -73,22 +107,30 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
         for (var trip in activeTrips) {
           if (trip['currentLatitude'] != null &&
               trip['currentLongitude'] != null) {
+            double lat = (trip['currentLatitude'] as num).toDouble();
+            double lng = (trip['currentLongitude'] as num).toDouble();
+
             newMarkers.add(
               Marker(
                 markerId: MarkerId('bus_${trip['busId']}'),
-                position: LatLng(
-                  trip['currentLatitude'],
-                  trip['currentLongitude'],
-                ),
+                position: LatLng(lat, lng),
                 infoWindow: InfoWindow(
                   title: 'Bus ID: ${trip['busId']}',
                   snippet: 'Route: ${trip['routeId']} (Live)',
                 ),
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueBlue,
-                ),
+                icon:
+                    _customBusIcon ??
+                    BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueBlue,
+                    ),
               ),
             );
+
+            if (newMarkers.length == 1 && _mapController != null) {
+              _mapController!.animateCamera(
+                CameraUpdate.newLatLng(LatLng(lat, lng)),
+              );
+            }
           }
         }
 
