@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'ticket_screen.dart'; // ALUTH: QR screen eka import kala
+import 'ticket_screen.dart';
 
 class MyTicketsScreen extends StatefulWidget {
   const MyTicketsScreen({super.key});
@@ -105,7 +105,6 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
-                  // ALUTH: Card eka click karanna puluwan wenna InkWell ekak damma
                   child: InkWell(
                     borderRadius: BorderRadius.circular(15),
                     onTap: () {
@@ -113,6 +112,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => TicketScreen(
+                            ticketId: ticket['id'],
                             routeData: {
                               'routeNumber': ticket['routeId'].toString(),
                             },
@@ -230,7 +230,6 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                                   ),
                                 ],
                               ),
-                              // ALUTH: User ta QR eka pennanna click karanna puluwan kiyala pennanawa
                               const Text(
                                 'Tap to view QR ➔',
                                 style: TextStyle(

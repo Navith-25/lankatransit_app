@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'dart:convert';
 
 class TicketScreen extends StatelessWidget {
+  final int? ticketId;
   final dynamic routeData;
   final dynamic startHalt;
   final dynamic endHalt;
@@ -9,6 +11,7 @@ class TicketScreen extends StatelessWidget {
 
   const TicketScreen({
     super.key,
+    this.ticketId,
     required this.routeData,
     required this.startHalt,
     required this.endHalt,
@@ -17,7 +20,13 @@ class TicketScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String qrData = "LankaTransit | Route: ${routeData['routeNumber']} | From: ${startHalt['haltName']} | To: ${endHalt['haltName']} | Price: Rs.$ticketPrice";
+    String qrData = jsonEncode({
+      'ticketId': ticketId ?? 0,
+      'route': routeData['routeNumber'],
+      'start': startHalt['haltName'],
+      'end': endHalt['haltName'],
+      'fare': ticketPrice,
+    });
 
     return Scaffold(
       backgroundColor: Colors.blueAccent,
@@ -36,7 +45,11 @@ class TicketScreen extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
               boxShadow: const [
-                BoxShadow(color: Colors.black26, blurRadius: 15, offset: Offset(0, 10)),
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 15,
+                  offset: Offset(0, 10),
+                ),
               ],
             ),
             child: Column(
@@ -44,15 +57,29 @@ class TicketScreen extends StatelessWidget {
               children: [
                 const Text(
                   'LANKA TRANSIT',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.blueAccent),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                    color: Colors.blueAccent,
+                  ),
                 ),
                 const SizedBox(height: 20),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Route: ${routeData['routeNumber']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Text('Bus: Normal', style: const TextStyle(fontSize: 16, color: Colors.grey)),
+                    Text(
+                      'Route: ${routeData['routeNumber']}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Text(
+                      'Bus: Normal',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
                   ],
                 ),
                 const Divider(thickness: 2, height: 30),
@@ -64,8 +91,17 @@ class TicketScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('FROM', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                          Text(startHalt['haltName'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          const Text(
+                            'FROM',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                          Text(
+                            startHalt['haltName'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -74,8 +110,18 @@ class TicketScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          const Text('TO', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                          Text(endHalt['haltName'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), textAlign: TextAlign.right),
+                          const Text(
+                            'TO',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                          Text(
+                            endHalt['haltName'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
                         ],
                       ),
                     ),
@@ -84,14 +130,21 @@ class TicketScreen extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 20,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.shade50,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     'Total Fare: Rs. ${ticketPrice.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 30),
@@ -103,7 +156,10 @@ class TicketScreen extends StatelessWidget {
                   backgroundColor: Colors.white,
                 ),
                 const SizedBox(height: 10),
-                const Text('Scan this code to verify your ticket', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                const Text(
+                  'Scan this code to verify your ticket',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
               ],
             ),
           ),
