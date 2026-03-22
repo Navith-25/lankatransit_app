@@ -71,11 +71,15 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
         Set<Marker> newMarkers = {};
 
         for (var trip in activeTrips) {
-          if (trip['latitude'] != null && trip['longitude'] != null) {
+          if (trip['currentLatitude'] != null &&
+              trip['currentLongitude'] != null) {
             newMarkers.add(
               Marker(
                 markerId: MarkerId('bus_${trip['busId']}'),
-                position: LatLng(trip['latitude'], trip['longitude']),
+                position: LatLng(
+                  trip['currentLatitude'],
+                  trip['currentLongitude'],
+                ),
                 infoWindow: InfoWindow(
                   title: 'Bus ID: ${trip['busId']}',
                   snippet: 'Route: ${trip['routeId']} (Live)',
