@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'route_management_screen.dart';
+import 'owner_management_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -315,6 +316,18 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.business_center),
+            tooltip: 'Manage Owners',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const OwnerManagementScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.map),
             tooltip: 'Manage Routes',
             onPressed: () {
@@ -397,7 +410,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                               ),
                               subtitle: Text(
                                 'Capacity: ${bus['capacity']} | Route ID: ${bus['routeId']}',
-                              ), // ALUTH: Pennanawa
+                              ),
                               trailing: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blueAccent,
