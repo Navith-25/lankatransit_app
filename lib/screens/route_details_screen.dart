@@ -105,10 +105,13 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (!mounted) return;
 
+        final responseData = jsonDecode(response.body);
+
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => TicketScreen(
+              ticketId: responseData['id'],
               routeData: widget.routeData,
               startHalt: _selectedStartHalt,
               endHalt: _selectedEndHalt,
