@@ -22,13 +22,31 @@ class _TicketScannerScreenState extends State<TicketScannerScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      Map<String, dynamic> ticketData = jsonDecode(qrData);
-      int? ticketId = ticketData['ticketId'];
+      print("Scanned QR Data: $qrData");
 
-      if (ticketId == null || ticketId == 0) {
+      // 1. QR eka parana text format ekakda kiyala check karanawa
+      if (!qrData.trim().startsWith('{')) {
         _showResultDialog(
-          'Invalid Ticket!',
-          'Fake or corrupted QR code.',
+          'Old Format QR!',
+          'Please generate a new JSON QR code.\nData: $qrData',
+          Colors.orange,
+          Icons.warning,
+        );
+        return;
+      }
+
+      // 2. JSON Data eka read karanawa
+      Map<String, dynamic> ticketData = jsonDecode(qrData);
+
+      int ticketId = 0;
+      if (ticketData['ticketId'] != null) {
+        ticketId = int.tryParse(ticketData['ticketId'].toString()) ?? 0;
+      }
+
+      if (ticketId == 0) {
+        _showResultDialog(
+          'Invalid Ticket ID!',
+          'Ticket ID is 0 or Missing inside QR.\nQR Data: $qrData',
           Colors.red,
           Icons.error,
         );
@@ -38,6 +56,7 @@ class _TicketScannerScreenState extends State<TicketScannerScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('jwt_token');
 
+      // 3. Backend ekata yawala check karanawa
       final response = await http.put(
         Uri.parse('$baseUrl/api/routes/bookings/$ticketId/use'),
         headers: {'Authorization': 'Bearer $token'},
@@ -46,7 +65,7 @@ class _TicketScannerScreenState extends State<TicketScannerScreen> {
       if (response.statusCode == 200) {
         _showResultDialog(
           'Valid Ticket ✅',
-          'Ticket scanned successfully.',
+          'Ticket #$ticketId scanned successfully.',
           Colors.green,
           Icons.check_circle,
         );
@@ -54,22 +73,22 @@ class _TicketScannerScreenState extends State<TicketScannerScreen> {
           response.body.contains("already used")) {
         _showResultDialog(
           'Already Used ❌',
-          'This ticket has already been used!',
+          'Ticket #$ticketId has already been used!',
           Colors.orange,
           Icons.warning,
         );
       } else {
         _showResultDialog(
-          'Invalid Ticket ❌',
-          'This ticket is not valid.',
+          'Server Error ❌',
+          'Failed to validate. Code: ${response.statusCode}',
           Colors.red,
           Icons.cancel,
         );
       }
     } catch (e) {
       _showResultDialog(
-        'Fake QR!',
-        'Not a valid Lankatransit Ticket.',
+        'QR Error!',
+        'Failed to read QR.\nError: $e',
         Colors.red,
         Icons.error,
       );
@@ -100,7 +119,7 @@ class _TicketScannerScreenState extends State<TicketScannerScreen> {
         content: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 16),
+          style: const TextStyle(fontSize: 14),
         ),
         actions: [
           Center(
@@ -111,7 +130,7 @@ class _TicketScannerScreenState extends State<TicketScannerScreen> {
               ),
               onPressed: () {
                 Navigator.pop(ctx);
-                Future.delayed(const Duration(seconds: 2), () {
+                Future.delayed(const Duration(seconds: 1), () {
                   if (mounted) setState(() => _isProcessing = false);
                 });
               },

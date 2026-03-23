@@ -112,7 +112,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => TicketScreen(
-                            ticketId: ticket['id'],
+                            ticketId: ticket['id'] ?? ticket['bookingId'] ?? 0,
                             routeData: {
                               'routeNumber': ticket['routeId'].toString(),
                             },
@@ -143,7 +143,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  'Route ID: ${ticket['routeId']}',
+                                  'TICKET ID: ${ticket['id'] ?? ticket['bookingId'] ?? 'NULL'}',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blueAccent,
