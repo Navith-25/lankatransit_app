@@ -63,6 +63,86 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen>
     }
   }
 
+  Future<void> _suspendStaff(int id) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('jwt_token');
+      final response = await http.put(
+        Uri.parse('$baseUrl/api/users/suspend/$id'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        _showMessage('Staff Suspended successfully!', Colors.orange);
+        _fetchOwnerDetails();
+      } else {
+        _showMessage('Failed to suspend staff!', Colors.red);
+      }
+    } catch (e) {
+      _showMessage('Error suspending staff!', Colors.red);
+    }
+  }
+
+  Future<void> _activateStaff(int id) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('jwt_token');
+      final response = await http.put(
+        Uri.parse(
+          '$baseUrl/api/users/approve/$id',
+        ),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        _showMessage('Staff Activated successfully!', Colors.green);
+        _fetchOwnerDetails();
+      } else {
+        _showMessage('Failed to activate staff!', Colors.red);
+      }
+    } catch (e) {
+      _showMessage('Error activating staff!', Colors.red);
+    }
+  }
+
+  Future<void> _suspendBus(int id) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('jwt_token');
+      final response = await http.put(
+        Uri.parse('$baseUrl/api/buses/suspend/$id'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        _showMessage('Bus Suspended successfully!', Colors.orange);
+        _fetchOwnerDetails();
+      } else {
+        _showMessage('Failed to suspend bus!', Colors.red);
+      }
+    } catch (e) {
+      _showMessage('Error suspending bus!', Colors.red);
+    }
+  }
+
+  Future<void> _activateBus(int id) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('jwt_token');
+      final response = await http.put(
+        Uri.parse(
+          '$baseUrl/api/buses/approve/$id',
+        ),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        _showMessage('Bus Activated successfully!', Colors.green);
+        _fetchOwnerDetails();
+      } else {
+        _showMessage('Failed to activate bus!', Colors.red);
+      }
+    } catch (e) {
+      _showMessage('Error activating bus!', Colors.red);
+    }
+  }
+
   void _showMessage(String msg, Color color) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -106,7 +186,9 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen>
                             elevation: 2,
                             child: ListTile(
                               leading: CircleAvatar(
-                                backgroundColor: Colors.blueAccent,
+                                backgroundColor: staff['status'] == 'SUSPENDED'
+                                    ? Colors.red
+                                    : Colors.blueAccent,
                                 child: Icon(
                                   staff['role'] == 'DRIVER'
                                       ? Icons.drive_eta
@@ -123,32 +205,61 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen>
                               subtitle: Text(
                                 '${staff['role']} | ${staff['email']}',
                               ),
-                              trailing: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: staff['status'] == 'APPROVED'
-                                      ? Colors.green[100]
-                                      : Colors.orange[100],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  staff['status'],
-                                  style: TextStyle(
-                                    color: staff['status'] == 'APPROVED'
-                                        ? Colors.green[800]
-                                        : Colors.orange[800],
-                                    fontSize: 12,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: staff['status'] == 'APPROVED'
+                                          ? Colors.green[100]
+                                          : (staff['status'] == 'SUSPENDED'
+                                              ? Colors.red[100]
+                                              : Colors.orange[100]),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      staff['status'],
+                                      style: TextStyle(
+                                        color: staff['status'] == 'APPROVED'
+                                            ? Colors.green[800]
+                                            : (staff['status'] == 'SUSPENDED'
+                                                ? Colors.red[800]
+                                                : Colors.orange[800]),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  if (staff['status'] != 'SUSPENDED')
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.block,
+                                        color: Colors.redAccent,
+                                      ),
+                                      tooltip: 'Suspend Staff',
+                                      onPressed: () =>
+                                          _suspendStaff(staff['id']),
+                                    )
+                                  else
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green,
+                                      ),
+                                      tooltip: 'Activate Staff',
+                                      onPressed: () =>
+                                          _activateStaff(staff['id']),
+                                    ),
+                                ],
                               ),
                             ),
                           );
                         },
                       ),
-
                 _busList.isEmpty
                     ? const Center(
                         child: Text('No buses found for this owner.'),
@@ -161,9 +272,11 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen>
                           return Card(
                             elevation: 2,
                             child: ListTile(
-                              leading: const CircleAvatar(
-                                backgroundColor: Colors.green,
-                                child: Icon(
+                              leading: CircleAvatar(
+                                backgroundColor: bus['status'] == 'SUSPENDED'
+                                    ? Colors.red
+                                    : Colors.green,
+                                child: const Icon(
                                   Icons.directions_bus,
                                   color: Colors.white,
                                 ),
@@ -176,6 +289,55 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen>
                               ),
                               subtitle: Text(
                                 'Route ID: ${bus['routeId']} | Capacity: ${bus['capacity']}',
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: bus['status'] == 'APPROVED'
+                                          ? Colors.green[100]
+                                          : (bus['status'] == 'SUSPENDED'
+                                              ? Colors.red[100]
+                                              : Colors.orange[100]),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      bus['status'] ?? 'N/A',
+                                      style: TextStyle(
+                                        color: bus['status'] == 'APPROVED'
+                                            ? Colors.green[800]
+                                            : (bus['status'] == 'SUSPENDED'
+                                                ? Colors.red[800]
+                                                : Colors.orange[800]),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  if (bus['status'] != 'SUSPENDED')
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.block,
+                                        color: Colors.redAccent,
+                                      ),
+                                      tooltip: 'Suspend Bus',
+                                      onPressed: () => _suspendBus(bus['id']),
+                                    )
+                                  else
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green,
+                                      ),
+                                      tooltip: 'Activate Bus',
+                                      onPressed: () => _activateBus(bus['id']),
+                                    ),
+                                ],
                               ),
                             ),
                           );
