@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddRouteMapScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _AddRouteMapScreenState extends State<AddRouteMapScreen> {
   final String googleApiKey = "AIzaSyCpLBpnNYInfufg7GC_dFxqLHjKYxzKX_s";
 
   late GoogleMapController mapController;
+  Timer? _debounce;
 
   LatLng? _startLocation;
   LatLng? _endLocation;
@@ -40,8 +42,15 @@ class _AddRouteMapScreenState extends State<AddRouteMapScreen> {
     mapController = controller;
   }
 
+  void _onSearchChanged(String val, bool isStart) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 800), () {
+      _searchPlaces(val, isStart);
+    });
+  }
+
   Future<void> _searchPlaces(String input, bool isStart) async {
-    if (input.isEmpty) {
+    if (input.trim().isEmpty) {
       setState(() {
         if (isStart)
           _startSuggestions = [];
@@ -55,15 +64,22 @@ class _AddRouteMapScreenState extends State<AddRouteMapScreen> {
         "https://nominatim.openstreetmap.org/search?q=$input&format=json&countrycodes=lk&limit=5";
 
     try {
-      var response = await http.get(Uri.parse(url));
-      var data = jsonDecode(response.body);
+      var response = await http.get(
+        Uri.parse(url),
+        headers: {'User-Agent': 'LankaTransitApp/1.0 (navith@example.com)'},
+      );
 
-      setState(() {
-        if (isStart)
-          _startSuggestions = data;
-        else
-          _endSuggestions = data;
-      });
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        setState(() {
+          if (isStart)
+            _startSuggestions = data;
+          else
+            _endSuggestions = data;
+        });
+      } else {
+        print("API Error: ${response.statusCode}");
+      }
     } catch (e) {
       print("Search error: $e");
     }
@@ -102,31 +118,32 @@ class _AddRouteMapScreenState extends State<AddRouteMapScreen> {
     mapController.animateCamera(CameraUpdate.newLatLngZoom(pos, 14));
 
     if (_startLocation != null && _endLocation != null) {
-      _fetchRouteFromGoogle();
+      _fetchRouteFromOSRM();
     }
   }
 
-  Future<void> _fetchRouteFromGoogle() async {
+  Future<void> _fetchRouteFromOSRM() async {
     if (_startLocation == null || _endLocation == null) return;
     setState(() => _isLoadingRoute = true);
 
-    String url = "https://maps.googleapis.com/maps/api/directions/json?"
-        "origin=${_startLocation!.latitude},${_startLocation!.longitude}"
-        "&destination=${_endLocation!.latitude},${_endLocation!.longitude}"
-        "&key=$googleApiKey";
+    String url = "https://router.project-osrm.org/route/v1/driving/"
+        "${_startLocation!.longitude},${_startLocation!.latitude};"
+        "${_endLocation!.longitude},${_endLocation!.latitude}?overview=full&geometries=geojson";
 
     try {
       var response = await http.get(Uri.parse(url));
       var data = jsonDecode(response.body);
 
-      if (data['status'] == 'OK') {
-        String polylineEncoded =
-            data['routes'][0]['overview_polyline']['points'];
-        String distanceStr = data['routes'][0]['legs'][0]['distance']['text'];
-        double distValue =
-            data['routes'][0]['legs'][0]['distance']['value'] / 1000.0;
+      if (data['code'] == 'Ok') {
+        var route = data['routes'][0];
+        double distValue = route['distance'] / 1000.0;
+        String distanceStr = "${distValue.toStringAsFixed(2)} km";
 
-        List<LatLng> decodedPoints = _decodePolyline(polylineEncoded);
+        var coordinates = route['geometry']['coordinates'];
+        List<LatLng> decodedPoints = [];
+        for (var coord in coordinates) {
+          decodedPoints.add(LatLng(coord[1], coord[0]));
+        }
 
         setState(() {
           _distanceText = distanceStr;
@@ -162,45 +179,13 @@ class _AddRouteMapScreenState extends State<AddRouteMapScreen> {
         );
         mapController.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
       } else {
-        _showMessage(
-            "Error from Google Maps: ${data['status']} - Verify Directions API",
-            Colors.red);
+        _showMessage("Failed to get route from Server.", Colors.red);
       }
     } catch (e) {
-      _showMessage("Failed to get route from Google Maps", Colors.red);
+      _showMessage("Error drawing route on map.", Colors.red);
     } finally {
       setState(() => _isLoadingRoute = false);
     }
-  }
-
-  List<LatLng> _decodePolyline(String encoded) {
-    List<LatLng> poly = [];
-    int index = 0, len = encoded.length;
-    int lat = 0, lng = 0;
-
-    while (index < len) {
-      int b, shift = 0, result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-
-      poly.add(LatLng(lat / 1E5, lng / 1E5));
-    }
-    return poly;
   }
 
   Future<void> _saveRouteToBackend() async {
@@ -340,11 +325,11 @@ class _AddRouteMapScreenState extends State<AddRouteMapScreen> {
                         TextField(
                           controller: _startSearchCtrl,
                           decoration: const InputDecoration(
-                            hintText: 'Search Start Location (e.g. Panadura)',
+                            hintText: 'Type Start Location...',
                             prefixIcon: Icon(Icons.search, color: Colors.green),
                             border: InputBorder.none,
                           ),
-                          onChanged: (val) => _searchPlaces(val, true),
+                          onChanged: (val) => _onSearchChanged(val, true),
                         ),
                         if (_startSuggestions.isNotEmpty)
                           Container(
@@ -365,11 +350,11 @@ class _AddRouteMapScreenState extends State<AddRouteMapScreen> {
                         TextField(
                           controller: _endSearchCtrl,
                           decoration: const InputDecoration(
-                            hintText: 'Search End Location (e.g. Colombo)',
+                            hintText: 'Type End Location...',
                             prefixIcon: Icon(Icons.search, color: Colors.red),
                             border: InputBorder.none,
                           ),
-                          onChanged: (val) => _searchPlaces(val, false),
+                          onChanged: (val) => _onSearchChanged(val, false),
                         ),
                         if (_endSuggestions.isNotEmpty)
                           Container(
@@ -395,15 +380,21 @@ class _AddRouteMapScreenState extends State<AddRouteMapScreen> {
           ),
         ],
       ),
-      floatingActionButton: _distanceText.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: _showSaveRouteDialog,
-              icon: const Icon(Icons.save),
-              label: Text('Save Route ($_distanceText)'),
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            )
-          : null,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _distanceText.isNotEmpty
+            ? _showSaveRouteDialog
+            : () {
+                _showMessage(
+                    "Mulinma Start saha End locations search karala list eken select karanna.",
+                    Colors.orange);
+              },
+        icon: const Icon(Icons.save),
+        label: Text(_distanceText.isNotEmpty
+            ? 'Save Route ($_distanceText)'
+            : 'Calculate Route First'),
+        backgroundColor: _distanceText.isNotEmpty ? Colors.green : Colors.grey,
+        foregroundColor: Colors.white,
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
