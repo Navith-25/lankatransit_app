@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'add_route_map_screen.dart';
 
 class RouteManagementScreen extends StatefulWidget {
   const RouteManagementScreen({super.key});
@@ -44,34 +45,71 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
     }
   }
 
-  Future<bool> _addRoute(String routeNumber, double baseFare) async {
+  void _openMapRouteCreator() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddRouteMapScreen()),
+    );
+
+    if (result == true) {
+      _fetchRoutes();
+    }
+  }
+
+  // ALUTH (NOTUN): Route Update korar function
+  Future<bool> _updateRoute(int routeId, String routeNo, String startLoc,
+      String endLoc, double fare) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('jwt_token');
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/routes'),
+      final response = await http.put(
+        Uri.parse('$baseUrl/api/routes/$routeId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          'routeNumber': routeNumber,
-          'baseFarePerKm': baseFare,
+          'routeNumber': routeNo,
+          'startLocation': startLoc,
+          'endLocation': endLoc,
+          'baseFarePerKm': fare,
         }),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        _showMessage('Route Added Successfully!', Colors.green);
+      if (response.statusCode == 200) {
+        _showMessage('Route Updated Successfully!', Colors.green);
         _fetchRoutes();
         return true;
       } else {
-        _showMessage('Failed to add route.', Colors.red);
+        _showMessage('Failed to update route.', Colors.red);
         return false;
       }
     } catch (e) {
-      _showMessage('Error adding route.', Colors.red);
+      _showMessage('Error updating route.', Colors.red);
       return false;
+    }
+  }
+
+  // ALUTH (NOTUN): Route Delete korar function
+  Future<void> _deleteRoute(int routeId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('jwt_token');
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/api/routes/$routeId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        _showMessage('Route Deleted Successfully!', Colors.green);
+        _fetchRoutes();
+      } else {
+        _showMessage('Failed to delete route.', Colors.red);
+      }
+    } catch (e) {
+      _showMessage('Error deleting route.', Colors.red);
     }
   }
 
@@ -137,9 +175,16 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
     ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
-  void _showAddRouteSheet() {
-    final TextEditingController routeNoCtrl = TextEditingController();
-    final TextEditingController fareCtrl = TextEditingController();
+  // ALUTH (NOTUN): Route Edit korar Bottom Sheet
+  void _showEditRouteSheet(dynamic route) {
+    final TextEditingController routeNoCtrl =
+        TextEditingController(text: route['routeNumber']);
+    final TextEditingController startLocCtrl =
+        TextEditingController(text: route['startLocation']);
+    final TextEditingController endLocCtrl =
+        TextEditingController(text: route['endLocation']);
+    final TextEditingController fareCtrl =
+        TextEditingController(text: route['baseFarePerKm'].toString());
     bool isSubmitting = false;
 
     showModalBottomSheet(
@@ -161,30 +206,39 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Add New Route',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                'Edit Route Details',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
               TextField(
                 controller: routeNoCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Route Number (e.g. 400, 02)',
-                  border: OutlineInputBorder(),
-                ),
+                    labelText: 'Route Number', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: startLocCtrl,
+                decoration: const InputDecoration(
+                    labelText: 'Start Location', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: endLocCtrl,
+                decoration: const InputDecoration(
+                    labelText: 'End Location', border: OutlineInputBorder()),
               ),
               const SizedBox(height: 15),
               TextField(
                 controller: fareCtrl,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Base Fare Per KM (Rs.)',
-                  border: OutlineInputBorder(),
-                ),
+                    labelText: 'Base Fare Per KM (Rs.)',
+                    border: OutlineInputBorder()),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
@@ -194,8 +248,11 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
                         if (routeNoCtrl.text.isEmpty || fareCtrl.text.isEmpty)
                           return;
                         setSheetState(() => isSubmitting = true);
-                        bool success = await _addRoute(
+                        bool success = await _updateRoute(
+                          route['id'],
                           routeNoCtrl.text,
+                          startLocCtrl.text,
+                          endLocCtrl.text,
                           double.parse(fareCtrl.text),
                         );
                         if (success && sheetContext.mounted)
@@ -204,7 +261,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
                       },
                 child: isSubmitting
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Save Route'),
+                    : const Text('Update Route'),
               ),
               const SizedBox(height: 20),
             ],
@@ -283,8 +340,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
                     : () async {
                         if (haltNameCtrl.text.isEmpty ||
                             distanceCtrl.text.isEmpty ||
-                            sequenceCtrl.text.isEmpty)
-                          return;
+                            sequenceCtrl.text.isEmpty) return;
                         setSheetState(() => isSubmitting = true);
                         bool success = await _addHalt(
                           route['id'],
@@ -314,7 +370,6 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
       builder: (ctx) => AlertDialog(
         title: Text('Halts: Route ${route['routeNumber']}'),
         content: FutureBuilder<List<dynamic>>(
-          // FIX KALA KALLA: wenama async method eka methanata damma
           future: _getHaltsForRoute(route['id']),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -376,42 +431,88 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
         foregroundColor: Colors.white,
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddRouteSheet,
+        onPressed: _openMapRouteCreator,
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_road),
-        label: const Text('Add Route'),
+        icon: const Icon(Icons.map),
+        label: const Text('Add Route via Map'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _routes.isEmpty
-          ? const Center(child: Text('No routes available. Add a new route!'))
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _routes.length,
-              itemBuilder: (context, index) {
-                var route = _routes[index];
-                return Card(
-                  elevation: 3,
-                  margin: const EdgeInsets.only(bottom: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(15.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              ? const Center(
+                  child: Text('No routes available. Add a new route!'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _routes.length,
+                  itemBuilder: (context, index) {
+                    var route = _routes[index];
+                    return Card(
+                      elevation: 3,
+                      margin: const EdgeInsets.only(bottom: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Route: ${route['routeNumber']}',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blueAccent,
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Route: ${route['routeNumber']}',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blueAccent,
+                                  ),
+                                ),
+                                // ALUTH: Edit & Delete Icons jukto kora hoyeche
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit,
+                                          color: Colors.orange),
+                                      onPressed: () =>
+                                          _showEditRouteSheet(route),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: const Text('Delete Route?'),
+                                            content: Text(
+                                                'Are you sure you want to delete Route ${route['routeNumber']}? This will remove all its halts.'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx),
+                                                child: const Text('Cancel'),
+                                              ),
+                                              ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.red,
+                                                    foregroundColor:
+                                                        Colors.white),
+                                                onPressed: () {
+                                                  Navigator.pop(ctx);
+                                                  _deleteRoute(route['id']);
+                                                },
+                                                child: const Text('Delete'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                             Text(
                               'Fare/KM: Rs.${route['baseFarePerKm']}',
@@ -421,34 +522,41 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
                                 color: Colors.green,
                               ),
                             ),
-                          ],
-                        ),
-                        const Divider(height: 30),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: () => _showHaltsDialog(route),
-                              icon: const Icon(Icons.list),
-                              label: const Text('View Halts'),
-                            ),
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
+                            const SizedBox(height: 8),
+                            Text(
+                              '${route['startLocation']} ➔ ${route['endLocation']}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500,
                               ),
-                              onPressed: () => _showAddHaltSheet(route),
-                              icon: const Icon(Icons.add_location_alt),
-                              label: const Text('Add Halt'),
+                            ),
+                            const Divider(height: 30),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () => _showHaltsDialog(route),
+                                  icon: const Icon(Icons.list),
+                                  label: const Text('View Halts'),
+                                ),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  onPressed: () => _showAddHaltSheet(route),
+                                  icon: const Icon(Icons.add_location_alt),
+                                  label: const Text('Add Halt'),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }
