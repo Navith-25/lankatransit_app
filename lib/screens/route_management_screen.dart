@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'add_route_map_screen.dart';
+import 'add_halt_map_screen.dart'; // ALUTH: Map eken Halts add karana screen eka import kala
 
 class RouteManagementScreen extends StatefulWidget {
   const RouteManagementScreen({super.key});
@@ -56,7 +57,6 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
     }
   }
 
-  // ALUTH (NOTUN): Route Update korar function
   Future<bool> _updateRoute(int routeId, String routeNo, String startLoc,
       String endLoc, double fare) async {
     try {
@@ -91,7 +91,6 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
     }
   }
 
-  // ALUTH (NOTUN): Route Delete korar function
   Future<void> _deleteRoute(int routeId) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -175,7 +174,6 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
     ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
-  // ALUTH (NOTUN): Route Edit korar Bottom Sheet
   void _showEditRouteSheet(dynamic route) {
     final TextEditingController routeNoCtrl =
         TextEditingController(text: route['routeNumber']);
@@ -469,7 +467,6 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
                                     color: Colors.blueAccent,
                                   ),
                                 ),
-                                // ALUTH: Edit & Delete Icons jukto kora hoyeche
                                 Row(
                                   children: [
                                     IconButton(
@@ -540,14 +537,23 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
                                   icon: const Icon(Icons.list),
                                   label: const Text('View Halts'),
                                 ),
+                                // ALUTH: Map Screen ekata yana button eka
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.green,
                                     foregroundColor: Colors.white,
                                   ),
-                                  onPressed: () => _showAddHaltSheet(route),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            AddHaltMapScreen(routeData: route),
+                                      ),
+                                    );
+                                  },
                                   icon: const Icon(Icons.add_location_alt),
-                                  label: const Text('Add Halt'),
+                                  label: const Text('Add Halt (Map)'),
                                 ),
                               ],
                             ),
