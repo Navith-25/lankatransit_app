@@ -39,55 +39,44 @@ class _AddHaltMapScreenState extends State<AddHaltMapScreen> {
     mapController = controller;
   }
 
-  Future<LatLng?> _getCoordinates(String placeName) async {
-    try {
-      String encoded = Uri.encodeComponent(placeName);
-      String url =
-          "https://photon.komoot.io/api/?q=$encoded&limit=1&lat=7.8731&lon=80.7718";
-      var res = await http.get(Uri.parse(url), headers: _apiHeaders);
-      if (res.statusCode == 200) {
-        var data = jsonDecode(res.body);
-        if (data['features'] != null && data['features'].isNotEmpty) {
-          var coords = data['features'][0]['geometry']['coordinates'];
-          return LatLng(coords[1], coords[0]);
-        }
-      }
-    } catch (e) {
-      print("Error getting coords: $e");
-    }
-    return null;
-  }
-
   Future<void> _loadExistingRoute() async {
     String startName = widget.routeData['startLocation'];
     String endName = widget.routeData['endLocation'];
 
-    LatLng? start = await _getCoordinates(startName);
-    LatLng? end = await _getCoordinates(endName);
+    if (widget.routeData['startLatitude'] != null &&
+        widget.routeData['startLongitude'] != null) {
+      _startLocation = LatLng(widget.routeData['startLatitude'],
+          widget.routeData['startLongitude']);
+    }
 
-    if (start != null) {
-      _startLocation = start;
+    if (widget.routeData['endLatitude'] != null &&
+        widget.routeData['endLongitude'] != null) {
+      _endLocation = LatLng(
+          widget.routeData['endLatitude'], widget.routeData['endLongitude']);
+    }
+
+    if (_startLocation != null) {
       _markers.add(Marker(
           markerId: const MarkerId('start'),
-          position: start,
+          position: _startLocation!,
           icon:
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
           infoWindow: InfoWindow(title: "Start: $startName")));
     }
-    if (end != null) {
-      _endLocation = end;
+    if (_endLocation != null) {
       _markers.add(Marker(
           markerId: const MarkerId('end'),
-          position: end,
+          position: _endLocation!,
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           infoWindow: InfoWindow(title: "End: $endName")));
     }
 
-    if (start != null && end != null) {
-      await _fetchRouteFromOSRM(start, end);
+    if (_startLocation != null && _endLocation != null) {
+      await _fetchRouteFromOSRM(_startLocation!, _endLocation!);
     } else {
       setState(() => _isLoading = false);
-      _showMessage("Start/End coordinates not found. You can still add halts.",
+      _showMessage(
+          "Start/End coordinates not found in Database. Please recreate route.",
           Colors.orange);
     }
   }
@@ -114,7 +103,6 @@ class _AddHaltMapScreenState extends State<AddHaltMapScreen> {
           _isLoading = false;
         });
 
-        // ALUTH: Route eka draw kalata passe parana Halts tika gennala map eke mark karanawa
         await _fetchExistingHaltsAndPlot(decodedPoints);
 
         LatLngBounds bounds = LatLngBounds(
@@ -130,7 +118,6 @@ class _AddHaltMapScreenState extends State<AddHaltMapScreen> {
     }
   }
 
-  // ALUTH: Backend eken Parana Halts genath Map eke paara dige Dura anuwa Interpolate (Calculate) karala mark kireema
   Future<void> _fetchExistingHaltsAndPlot(List<LatLng> routePoints) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -146,38 +133,40 @@ class _AddHaltMapScreenState extends State<AddHaltMapScreen> {
 
         setState(() {
           for (var halt in halts) {
-            double targetDist = (halt['distanceFromStart'] as num).toDouble();
             LatLng? haltPos;
-            double cumulativeDist = 0.0;
 
-            // Route eke points dige gihin Hari dura (targetDist) labena thana coordinates hoyagannawa
-            if (targetDist == 0.0 && routePoints.isNotEmpty) {
-              haltPos = routePoints.first;
+            if (halt['latitude'] != null && halt['longitude'] != null) {
+              haltPos = LatLng(halt['latitude'], halt['longitude']);
             } else {
-              for (int i = 0; i < routePoints.length - 1; i++) {
-                double segDist =
-                    _calculateDistance(routePoints[i], routePoints[i + 1]);
-                if (cumulativeDist + segDist >= targetDist) {
-                  double fraction = segDist == 0
-                      ? 0
-                      : (targetDist - cumulativeDist) / segDist;
-                  double lat = routePoints[i].latitude +
-                      (routePoints[i + 1].latitude - routePoints[i].latitude) *
-                          fraction;
-                  double lng = routePoints[i].longitude +
-                      (routePoints[i + 1].longitude -
-                              routePoints[i].longitude) *
-                          fraction;
-                  haltPos = LatLng(lat, lng);
-                  break;
+              double targetDist = (halt['distanceFromStart'] as num).toDouble();
+              double cumulativeDist = 0.0;
+              if (targetDist == 0.0 && routePoints.isNotEmpty) {
+                haltPos = routePoints.first;
+              } else {
+                for (int i = 0; i < routePoints.length - 1; i++) {
+                  double segDist =
+                      _calculateDistance(routePoints[i], routePoints[i + 1]);
+                  if (cumulativeDist + segDist >= targetDist) {
+                    double fraction = segDist == 0
+                        ? 0
+                        : (targetDist - cumulativeDist) / segDist;
+                    double lat = routePoints[i].latitude +
+                        (routePoints[i + 1].latitude -
+                                routePoints[i].latitude) *
+                            fraction;
+                    double lng = routePoints[i].longitude +
+                        (routePoints[i + 1].longitude -
+                                routePoints[i].longitude) *
+                            fraction;
+                    haltPos = LatLng(lat, lng);
+                    break;
+                  }
+                  cumulativeDist += segDist;
                 }
-                cumulativeDist += segDist;
               }
+              haltPos ??= routePoints.last;
             }
 
-            haltPos ??= routePoints.last;
-
-            // Parana Halts Orange paatin pennanawa
             _markers.add(Marker(
               markerId: MarkerId('existing_halt_${halt['id']}'),
               position: haltPos,
@@ -309,13 +298,14 @@ class _AddHaltMapScreenState extends State<AddHaltMapScreen> {
         body: jsonEncode({
           'haltName': name,
           'distanceFromStart': distance,
-          'sequenceOrder': sequence
+          'sequenceOrder': sequence,
+          'latitude': point.latitude,
+          'longitude': point.longitude
         }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         setState(() {
-          // Aluth Halts Nil paatin pennanawa
           _markers.add(Marker(
               markerId: MarkerId('new_halt_$sequence'),
               position: point,

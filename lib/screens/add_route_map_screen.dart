@@ -323,6 +323,10 @@ class _AddRouteMapScreenState extends State<AddRouteMapScreen> {
           'startLocation': sLoc,
           'endLocation': eLoc,
           'baseFarePerKm': double.parse(_fareCtrl.text),
+          'startLatitude': _startLocation!.latitude,
+          'startLongitude': _startLocation!.longitude,
+          'endLatitude': _endLocation!.latitude,
+          'endLongitude': _endLocation!.longitude,
         }),
       );
 
@@ -333,6 +337,7 @@ class _AddRouteMapScreenState extends State<AddRouteMapScreen> {
             (a['distance'] as double).compareTo(b['distance'] as double));
 
         for (int i = 0; i < _newHalts.length; i++) {
+          LatLng point = _newHalts[i]['latLng'];
           await http.post(
             Uri.parse('$baseUrl/api/routes/$routeId/halts'),
             headers: {
@@ -343,6 +348,8 @@ class _AddRouteMapScreenState extends State<AddRouteMapScreen> {
               'haltName': _newHalts[i]['name'],
               'distanceFromStart': _newHalts[i]['distance'],
               'sequenceOrder': i + 1,
+              'latitude': point.latitude,
+              'longitude': point.longitude
             }),
           );
         }

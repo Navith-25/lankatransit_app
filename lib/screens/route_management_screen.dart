@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'add_route_map_screen.dart';
-import 'add_halt_map_screen.dart'; // ALUTH: Map eken Halts add karana screen eka import kala
+import 'add_halt_map_screen.dart';
 
 class RouteManagementScreen extends StatefulWidget {
   const RouteManagementScreen({super.key});
@@ -537,7 +537,6 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
                                   icon: const Icon(Icons.list),
                                   label: const Text('View Halts'),
                                 ),
-                                // ALUTH: Map Screen ekata yana button eka
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.green,
