@@ -156,22 +156,31 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('jwt_token');
-      String? email = prefs.getString('email') ?? "user@example.com";
+
+      String todayDate = DateTime.now().toIso8601String().split('T')[0];
+      String uniqueQrHash = "TKT-${DateTime.now().millisecondsSinceEpoch}";
+
+      var payload = jsonEncode({
+        'passengerId': 1,
+        'routeId': routeInfo['routeId'],
+        'startHaltId': 1,
+        'endHaltId': 2,
+        'travelDate': todayDate,
+        'fare': (routeInfo['calculatedFare'] as num).toDouble(),
+        'qrCodeHash': uniqueQrHash,
+        'status': 'VALID',
+        'scannedBusId': null
+      });
+
+      print("Sending Exact Payload: $payload");
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/routes/book'),
+        Uri.parse('$baseUrl/api/tickets/book'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token'
         },
-        body: jsonEncode({
-          'userEmail': email,
-          'routeId': routeInfo['routeId'],
-          'startLocation': _searchResult!['startHaltName'],
-          'endLocation': _searchResult!['endHaltName'],
-          'fare': routeInfo['calculatedFare'],
-          'status': 'ACTIVE'
-        }),
+        body: payload,
       );
 
       Navigator.pop(context);
@@ -183,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => TicketScreen(
-              ticketId: bookingData['id'] ?? 1001,
+              ticketId: bookingData['ticket_id'] ?? bookingData['id'] ?? 1001,
               routeData: {'routeNumber': routeInfo['routeNumber']},
               startHalt: {'haltName': _searchResult!['startHaltName']},
               endHalt: {'haltName': _searchResult!['endHaltName']},
@@ -192,11 +201,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       } else {
-        _showError('Booking failed!');
+        _showError(
+            'Booking failed! Status: ${response.statusCode}, Error: ${response.body}');
+        print('Error Response: ${response.body}');
       }
     } catch (e) {
       Navigator.pop(context);
-      _showError('Error booking ticket.');
+      _showError('Error booking ticket: $e');
+      print('Exception: $e');
     }
   }
 
@@ -271,7 +283,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       drawer: Drawer(
-        // Left menu eka
         child: ListView(
           children: [
             const DrawerHeader(
