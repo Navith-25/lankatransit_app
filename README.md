@@ -1,10 +1,3 @@
----
-
-### 2. Frontend Repository-r jonno README.md (`LankaTransit`)
-
-Ei code ti copy kore apnar frontend (Flutter) repository-r `README.md` file e paste korun:
-
-```markdown
 # 📱 LankaTransit Mobile Application
 
 The LankaTransit mobile app is the user-facing client for Sri Lanka's next-generation bus transport network. Developed with Flutter, this cross-platform application provides distinct, feature-rich interfaces for Passengers, Bus Drivers, Bus Owners, and System Admins, bringing Uber-like convenience to public transportation.
