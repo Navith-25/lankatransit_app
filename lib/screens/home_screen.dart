@@ -156,26 +156,21 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('jwt_token');
-
-      String todayDate = DateTime.now().toIso8601String().split('T')[0];
-      String uniqueQrHash = "TKT-${DateTime.now().millisecondsSinceEpoch}";
+      String? email = prefs.getString('email') ?? "user@example.com";
 
       var payload = jsonEncode({
-        'passengerId': 1,
+        'userEmail': email,
         'routeId': routeInfo['routeId'],
-        'startHaltId': 1,
-        'endHaltId': 2,
-        'travelDate': todayDate,
+        'startHalt': _searchResult!['startHaltName'].toString(),
+        'endHalt': _searchResult!['endHaltName'].toString(),
         'fare': (routeInfo['calculatedFare'] as num).toDouble(),
-        'qrCodeHash': uniqueQrHash,
-        'status': 'VALID',
-        'scannedBusId': null
+        'status': 'VALID'
       });
 
-      print("Sending Exact Payload: $payload");
+      print("Sending Exact Payload to RouteController: $payload");
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/tickets/book'),
+        Uri.parse('$baseUrl/api/routes/book'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token'
@@ -192,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => TicketScreen(
-              ticketId: bookingData['ticket_id'] ?? bookingData['id'] ?? 1001,
+              ticketId: bookingData['id'] ?? 1001,
               routeData: {'routeNumber': routeInfo['routeNumber']},
               startHalt: {'haltName': _searchResult!['startHaltName']},
               endHalt: {'haltName': _searchResult!['endHaltName']},
